@@ -1,0 +1,23 @@
+# Stage 1: Build the KafkaConsumer module
+FROM gradle:8.10.2-jdk17 AS builder
+WORKDIR /build
+COPY build.gradle .
+COPY settings.gradle .
+COPY KafkaConsumer/build.gradle KafkaConsumer/
+COPY KafkaConsumer/src KafkaConsumer/src
+RUN gradle :KafkaConsumer:clean :KafkaConsumer:build -x test
+
+# Stage 2: Create the runtime image
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=builder /build/KafkaConsumer/build/libs/KafkaConsumer-0.0.1-SNAPSHOT.jar app.jar
+
+# Create non-root user for security
+RUN adduser --disabled-password springuser
+USER springuser
+
+# Expose Spring Boot port
+EXPOSE 8082
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]

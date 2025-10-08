@@ -19,11 +19,11 @@ import org.springframework.web.client.RestTemplate;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Component
-@EnableScheduling
+//@Component
+//@EnableScheduling
 public class MessageProducer {
 
-    private static final Logger logger = LoggerFactory.getLogger(MessageProducer.class);
+   /* private static final Logger logger = LoggerFactory.getLogger(MessageProducer.class);
     private static final int CORE_POOL_SIZE = Runtime.getRuntime().availableProcessors();
 
     private final KafkaTemplate<String, String> kafkaTemplate;
@@ -55,6 +55,7 @@ public class MessageProducer {
                 new LinkedBlockingQueue<>(100),
                 new ThreadPoolExecutor.CallerRunsPolicy()
         );
+
     }
 
     @PostConstruct
@@ -63,7 +64,7 @@ public class MessageProducer {
                 topic, maxMessages, weatherApiUrl);
     }
 
-    @Scheduled(fixedDelayString = "${producer.interval-ms}")
+   // @Scheduled(fixedDelayString = "${producer.interval-ms}")
     public void produceMessage() {
         if (currentMessageId.get() >= maxMessages) return;
 
@@ -123,5 +124,5 @@ public class MessageProducer {
             Thread.currentThread().interrupt();
             logger.error("Shutdown interrupted", e);
         }
-    }
+    }*/
 }

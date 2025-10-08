@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package org.kafka.producer.model.protobuf;
+
+option java_package = "org.kafka.producer.model.protobuf";
+option java_outer_classname = "IoTSensorProto";
+
+message IoTSensorData {
+  string sensor_id = 1;
+  string sensor_type = 2;
+  string location = 3;
+  double value = 4;
+  string unit = 5;
+  int64 timestamp = 6;
+  int32 battery_level = 7;
+  map<string, string> metadata = 8;
+}

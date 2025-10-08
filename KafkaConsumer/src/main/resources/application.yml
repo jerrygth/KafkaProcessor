@@ -1,11 +1,43 @@
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka1:9092,kafka2:9094,kafka3:9096}
+    schema-registry:
+      url: ${SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL:http://schema-registry:8081}
     consumer:
       group-id: demo-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-logging:
-  level:
-    org.kafka: INFO
+      enable-auto-commit: false
+      max-poll-records: 100
+      client-id: consumer-clientId
+    admin:
+      auto-create: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus
+
+# Consumer Group Configuration
+consumer:
+  group-id:
+    stock: stock-consumer-group
+    user-events: user-events-consumer-group
+    sensors: sensors-consumer-group
+    weather: weather-consumer-group
+
+  # Consumer Configuration
+  concurrency:
+    stock: 3        # 3 consumer threads for stock messages
+    user-events: 2  # 2 consumer threads for user events
+    sensors: 2      # 2 consumer threads for sensor data
+    weather: 1      # 1 consumer thread for weather data (low volume)
+
+# Use the same topics as producer
+producer:
+  topics:
+    stock-protobuf: stock-prices-protobuf
+    user-events-protobuf: user-events-protobuf
+    sensors-avro: iot-sensors-avro
+    weather-avro: weather-data-avro

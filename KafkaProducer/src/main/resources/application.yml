@@ -1,16 +1,40 @@
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_BROKER:kafka:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka1:9092,kafka2:9094,kafka3:9096}
+    schema-registry:
+      url: ${SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL:http://schema-registry:8081}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      compression-type: snappy
+      client-id: producer-demo
+    admin:
+      auto-create: false
 producer:
-  kafka-topic: high-frequency-data
-  interval-ms: 5000
-  max-messages: 2
-  weather-api-url: https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true
+ # kafka-topic: weather-topic
+ # max-messages: 1000
+ # interval-ms: 10000
+ # weather-api-url: https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true
+ # Producer Topic Configuration
+  topics:
+    stock-protobuf: stock-prices-protobuf
+    user-events-protobuf: user-events-protobuf
+    sensors-avro: iot-sensors-avro
+    weather-avro: weather-data-avro
+  # Message Production Configuration
+  scheduling:
+    stock-price-rate: 1000
+    user-event-rate: 1000
+    sensor-data-rate: 1000
+    weather-data-rate: 1000
 logging:
   level:
     com.kafka: INFO
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus

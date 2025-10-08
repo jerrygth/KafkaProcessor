@@ -1,4 +1,5 @@
 rootProject.name = 'kafka-processor'
 include 'KafkaConsumer'
 include 'KafkaProducer'
+include 'KafkaStreams'
 

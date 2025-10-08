@@ -1,0 +1,22 @@
+{
+          "type": "record",
+          "name": "WeatherData",
+          "namespace": "org.kafka.avro.weather",
+          "fields": [
+            {"name": "stationId", "type": "string"},
+            {"name": "temperature", "type": "double"},
+            {"name": "humidity", "type": "double"},
+            {"name": "pressure", "type": "double"},
+            {"name": "windSpeed", "type": "double"},
+            {"name": "windDirection", "type": "int"},
+            {"name": "timestamp", "type": "long"},
+            {"name": "location", "type": {
+              "type": "record",
+              "name": "GeoLocation",
+              "fields": [
+                {"name": "latitude", "type": "double"},
+                {"name": "longitude", "type": "double"}
+              ]
+            }}
+          ]
+        }

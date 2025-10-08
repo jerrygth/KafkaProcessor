@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package org.kafka.producer.model.protobuf;
+
+option java_package = "org.kafka.producer.model.protobuf";
+option java_outer_classname = "UserEventProto";
+
+message UserEvent {
+  string event_id = 1;
+  string user_id = 2;
+  string event_type = 3;
+  int64 timestamp = 4;
+  string session_id = 5;
+  string page = 6;
+  string user_agent = 7;
+  string ip_address = 8;
+  string country = 9;
+  string device = 10;
+}

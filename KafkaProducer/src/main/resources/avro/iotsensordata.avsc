@@ -1,0 +1,15 @@
+{
+          "type": "record",
+          "name": "IoTSensorData",
+          "namespace": "org.kafka.avro.sensor",
+          "fields": [
+            {"name": "sensorId", "type": "string"},
+            {"name": "sensorType", "type": "string"},
+            {"name": "location", "type": "string"},
+            {"name": "value", "type": "double"},
+            {"name": "unit", "type": "string"},
+            {"name": "timestamp", "type": "long"},
+            {"name": "batteryLevel", "type": "int"},
+            {"name": "metadata", "type": {"type": "map", "values": "string"}, "default": {}}
+          ]
+        }

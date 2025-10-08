@@ -1,0 +1,16 @@
+rules:
+    - pattern: "kafka.server<type=BrokerTopicMetrics, name=(.*), topic=(.*)><>Count"
+      name: kafka_broker_topic_$1
+      labels:
+        topic: "$2"
+    - pattern: "kafka.server<type=ReplicaManager, name=(.*)><>Value"
+      name: kafka_replica_manager_$1
+    - pattern: "kafka.network<type=RequestMetrics, name=(.*), request=(.*)><>Count"
+      name: kafka_request_$1
+      labels:
+        request: "$2"
+    - pattern: "kafka.log<type=Log, name=(.*), topic=(.*), partition=(.*)><>Value"
+      name: kafka_log_$1
+      labels:
+        topic: "$2"
+        partition: "$3"

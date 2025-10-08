@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package org.kafka.producer.model.protobuf;
+
+option java_package = "org.kafka.producer.model.protobuf";
+option java_outer_classname = "StockPriceProto";
+
+message StockPrice {
+  string symbol = 1;
+  double price = 2;
+  int64 volume = 3;
+  int64 timestamp = 4;
+  string exchange = 5;
+  double bid = 6;
+  double ask = 7;
+  int64 market_cap = 8;
+}
