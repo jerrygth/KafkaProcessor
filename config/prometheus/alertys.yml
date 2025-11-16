@@ -1,0 +1,122 @@
+groups:
+  - name: kafka_consumer_alerts
+    interval: 30s
+    rules:
+      # Critical: Consumer is down
+      - alert: KafkaConsumerDown
+        expr: up{job="kafka-consumer"} == 0
+        for: 1m
+        annotations:
+          summary: "Kafka consumer service is down"
+          description: "Consumer instance {{ $labels.instance }} is unreachable"
+        labels:
+          severity: critical
+          team: data-platform
+
+      # High: Consumer processing errors spiking
+      - alert: KafkaConsumerErrorRateHigh
+        expr: rate(kafka_consumer_messages_failed_total[5m]) > 0.05
+        for: 5m
+        annotations:
+          summary: "High error rate in Kafka consumer"
+          description: "Error rate: {{ $value | humanizePercentage }} on {{ $labels.job }}"
+        labels:
+          severity: high
+          team: data-platform
+
+  - name: kafka_producer_alerts
+    interval: 30s
+    rules:
+      # Critical: Producer is down
+      - alert: KafkaProducerDown
+        expr: up{job="kafka-producer"} == 0
+        for: 1m
+        annotations:
+          summary: "Kafka producer service is down"
+          description: "Producer instance {{ $labels.instance }} is unreachable"
+        labels:
+          severity: critical
+          team: data-platform
+
+      # High: Producer send failures
+      - alert: KafkaProducerFailureRateHigh
+        expr: rate(kafka_producer_messages_failed_total[5m]) > 0.02
+        for: 5m
+        annotations:
+          summary: "High failure rate in Kafka producer"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+        labels:
+          severity: high
+          team: data-platform
+
+      # High: Producer throughput drop
+      - alert: KafkaProducerThroughputDrop
+        expr: rate(kafka_producer_messages_sent_total[5m]) < 100
+        for: 10m
+        annotations:
+          summary: "Kafka producer throughput dropped"
+          description: "Messages per second: {{ $value }}"
+        labels:
+          severity: high
+          team: data-platform
+
+  - name: kafka_infrastructure_alerts
+    interval: 30s
+    rules:
+      # Critical: Broker unavailable
+      - alert: KafkaBrokerDown
+        expr: kafka_server_broker_topic_metrics_messages_total == absent
+        for: 2m
+        annotations:
+          summary: "Kafka broker is down"
+          description: "Broker {{ $labels.broker_id }} is not responding"
+        labels:
+          severity: critical
+          team: platform
+
+      # High: Under-replicated partitions
+      - alert: KafkaUnderReplicatedPartitions
+        expr: kafka_server_replicamanager_underreplicatedpartitions > 0
+        for: 5m
+        annotations:
+          summary: "Kafka has under-replicated partitions"
+          description: "{{ $value }} partitions are under-replicated on broker {{ $labels.broker_id }}"
+        labels:
+          severity: high
+          team: platform
+
+      # Warning: Topic replication lag
+      - alert: KafkaReplicationLagHigh
+        expr: kafka_server_replicamanager_leaderlogendoffset - kafka_server_replicamanager_followerlogendoffset > 10000
+        for: 10m
+        annotations:
+          summary: "Kafka replication lag detected"
+          description: "Replication lag: {{ $value }} messages"
+        labels:
+          severity: warning
+          team: platform
+
+  - name: resource_alerts
+    interval: 30s
+    rules:
+      # Critical: Memory usage high
+      - alert: KafkaMemoryUsageHigh
+        expr: container_memory_usage_bytes{job=~"kafka-.*"} / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        annotations:
+          summary: "Kafka container memory usage critical"
+          description: "Memory usage: {{ $value | humanizePercentage }} on {{ $labels.job }}"
+        labels:
+          severity: critical
+          team: platform
+
+      # High: CPU usage high
+      - alert: KafkaCPUUsageHigh
+        expr: rate(container_cpu_usage_seconds_total{job=~"kafka-.*"}[5m]) * 100 > 80
+        for: 10m
+        annotations:
+          summary: "Kafka container CPU usage high"
+          description: "CPU usage: {{ $value }}% on {{ $labels.job }}"
+        labes:
+          severity: high
+          team: platform

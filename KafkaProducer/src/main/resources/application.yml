@@ -14,10 +14,6 @@ spring:
     admin:
       auto-create: false
 producer:
- # kafka-topic: weather-topic
- # max-messages: 1000
- # interval-ms: 10000
- # weather-api-url: https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true
  # Producer Topic Configuration
   topics:
     stock-protobuf: stock-prices-protobuf

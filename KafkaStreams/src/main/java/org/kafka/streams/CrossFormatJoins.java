@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Map;
 
 
@@ -72,14 +73,12 @@ public class CrossFormatJoins {
     private String extractStockSymbolFromSearch(UserEventProto.UserEvent event) {
         // Extract stock symbol from search query - simplified implementation
         String[] symbols = {"AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META", "NVDA", "NFLX"};
-        String query = event.getPage().toUpperCase(); // Simplified - assuming page contains symbol
-
-        for (String symbol : symbols) {
-            if (query.contains(symbol)) {
-                return symbol;
-            }
+        if(event == null || event.getPage() == null) {
+            logger.warn("Null event or page received");
+            return null;
         }
-        return null;
+        String query = event.getPage().toUpperCase(); // Simplified - assuming page contains symbol
+        return Arrays.stream(symbols).filter(s->query.contains(s)).findFirst().orElse(null);
     }
 
     private StockUserInterestCorrelation correlateStockPriceWithUserInterest(

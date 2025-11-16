@@ -83,9 +83,13 @@ public class RealTimeStream {
         });
 
         // Add uncaught exception handler
-        streams.setUncaughtExceptionHandler((Thread thread, Throwable throwable) -> {
-            logger.error("Uncaught exception in stream processing", throwable);
+        streams.setUncaughtExceptionHandler(throwable -> {
+            logger.error("Unhandled exception in Kafka Streams thread", throwable);
+
+            // Strategy: shut down the client (you could also use REPLACE_THREAD or SHUTDOWN_APPLICATION)
+            return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
         });
+
 
         streams.start();
         latch.await();

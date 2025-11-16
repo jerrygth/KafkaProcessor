@@ -1,0 +1,253 @@
+name: Kafka Processor CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ============================================================
+  # BUILD & TEST
+  # ============================================================
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build-time: ${{ steps.version.outputs.build-time }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Generate version and metadata
+        id: version
+        run: |
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "1.0.0-${GITHUB_SHA::8}")
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "build-time=${BUILD_TIME}" >> $GITHUB_OUTPUT
+          echo "📦 Version: ${VERSION}"
+          echo "🕐 Build Time: ${BUILD_TIME}"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Validate Gradle wrapper
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      # Build with your exact Gradle structure
+
+      - name: Build all modules
+        run: |
+          ./gradlew clean \
+            :KafkaConsumer:build \
+            :KafkaProducer:build \
+            :KafkaStreams:build \
+            -x test \
+            --parallel \
+            --no-daemon
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Xmx2g"
+
+      # Run tests per module
+      - name: Test KafkaConsumer
+        run: ./gradlew :KafkaConsumer:test --no-daemon --stacktrace
+        continue-on-error: true
+
+      - name: Test KafkaProducer
+        run: ./gradlew :KafkaProducer:test --no-daemon --stacktrace
+        continue-on-error: true
+
+      - name: Test KafkaStreams
+        run: ./gradlew :KafkaStreams:test --no-daemon --stacktrace
+        continue-on-error: true
+
+      # Generate test reports
+      - name: Generate Test Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Gradle Tests
+          path: '**/build/test-results/test/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      # Upload test results
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          retention-days: 7
+
+      # Upload built JARs
+      - name: Upload JAR artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-jars
+          path: |
+            KafkaConsumer/build/libs/KafkaConsumer-*.jar
+            KafkaProducer/build/libs/KafkaProducer-*.jar
+            KafkaStreams/build/libs/KafkaStreams-*.jar
+          retention-days: 7
+          if-no-files-found: error
+
+      # List generated JARs for verification
+      - name: List generated JARs
+        run: |
+          echo "📦 Generated JAR files:"
+          find . -name "*.jar" -type f -path "*/build/libs/*" ! -path "*/plain/*"
+
+  # ============================================================
+  # CODE QUALITY & SECURITY
+  # ============================================================
+  quality:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
+
+      # SonarQube analysis (optional)
+      - name: SonarQube Scan
+        if: env.SONAR_TOKEN != ''
+        run: |
+          ./gradlew sonarqube \
+            -Dsonar.projectKey=kafka-processor \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            --no-daemon
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # Dependency vulnerability check
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'kafka-processor'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+            --suppression dependency-check-suppressions.xml
+        continue-on-error: true
+
+      - name: Upload Dependency Check Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/dependency-check-report.html
+        continue-on-error: true
+
+# ============================================================
+# DOCKER BUILD
+# ============================================================
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main')
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        module:
+          - name: KafkaConsumer
+            port: 8082
+          - name: KafkaProducer
+            port: 8083
+          - name: KafkaStreams
+            port: 8084
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.module.name }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Build and push
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .  # Root context
+          file: ./${{ matrix.module.name }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            MODULE_NAME=${{ matrix.module.name }}
+
+      - name: Image scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.module.name }}:latest
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.module.name }}.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.module.name }}.sarif'
+        continue-on-error: true

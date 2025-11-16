@@ -55,7 +55,7 @@ public class StockAnalysis {
         builder.addStateStore(volatilityStateStoreBuilder);
 
         //Stock price moving average calculation
-        stockPriceStream.groupBy((key,stock) -> stock.getSymbol()).windowedBy(TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofSeconds(30))).
+        stockPriceStream.groupBy((key,stock) -> stock.getSymbol()).windowedBy(TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(1))).
                 aggregate(()-> new StockMovingAverage(),(key,stock,aggregate) -> aggregate.updateAverage(stock.getPrice(),stock.getTimestamp()),
                         Materialized.<String, StockMovingAverage, WindowStore<Bytes, byte[]>>as("stock-moving-averages")
                                 .withKeySerde(Serdes.String())

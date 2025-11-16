@@ -16,7 +16,7 @@ import java.util.Map;
 public class VolatilityProcessor implements Processor<String, StockPriceProto.StockPrice, String, String> {
 
     private static Logger logger = LoggerFactory.getLogger(VolatilityProcessor.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private ProcessorContext<String, String> context;
     private KeyValueStore<String, String> volatilityStore;
 
@@ -112,7 +112,7 @@ public class VolatilityProcessor implements Processor<String, StockPriceProto.St
 
         public String toJson() {
             try {
-                return new ObjectMapper().writeValueAsString(this);
+                return VolatilityProcessor.objectMapper.writeValueAsString(this);
             } catch (Exception e) {
                 return "{}";
             }
@@ -120,9 +120,11 @@ public class VolatilityProcessor implements Processor<String, StockPriceProto.St
 
         public static VolatilityCalculator fromJson(String json) {
             try {
-                return new ObjectMapper().readValue(json, VolatilityCalculator.class);
+                return VolatilityProcessor.objectMapper.readValue(json, VolatilityCalculator.class);
             } catch (Exception e) {
-                return new VolatilityCalculator();
+                logger.error("Failed to deserialize VolatilityCalculator from: {}", json, e);
+                // Alert operations team
+                throw new RuntimeException("State store corruption detected", e);
             }
         }
     }

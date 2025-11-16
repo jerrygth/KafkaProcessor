@@ -1,29 +1,85 @@
-### IntelliJ IDEA ###
+###############################################################
+# IntelliJ IDEA
+###############################################################
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# IntelliJ build output
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-### Eclipse ###
-.apt_generated
+###############################################################
+# Gradle (Root + Multi-Module)
+###############################################################
+.gradle/
+build/
+KafkaConsumer/build/
+*/build/
+**/build/
+
+# Local Gradle wrapper files
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+###############################################################
+# Logs & Temporary Files
+###############################################################
+*.log
+*.tmp
+*.temp
+*.swp
+
+###############################################################
+# Java / JVM
+###############################################################
+*.class
+*.jar
+*.war
+*.ear
+
+###############################################################
+# OS / Editor Files
+###############################################################
+.DS_Store
+Thumbs.db
+.vscode/
+
+###############################################################
+# Kafka (optional — only if running local Kafka broker)
+###############################################################
+kafka-logs/
+zookeeper/
+
+###############################################################
+# Docker (optional)
+###############################################################
+**/docker-build/
+*.tar
+
+###############################################################
+# NetBeans / Eclipse (in case opened accidentally)
+###############################################################
+nbproject/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
 .classpath
 .factorypath
 .project
-.settings
-.springBeans
+.settings/
 .sts4-cache
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
+###############################################################
+# Generated Sources (Avro / protobuf / codegen)
+###############################################################
+generated/
+generated-main-avro-java/

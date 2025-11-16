@@ -30,8 +30,8 @@ public class KafkaConsumer {
     private final Timer messageProcessingTime;
     private final Timer consumerLagTimer;
 
-    private
-    KafkaConsumer(MeterRegistry meterRegistry){
+
+    public KafkaConsumer(MeterRegistry meterRegistry){
         this.meterRegistry = meterRegistry;
         this.protobufMessagesConsumed = Counter.builder("kafka.consumer.protobuf.messages")
                 .description("Total number of protobuf messages consumed")
@@ -50,7 +50,7 @@ public class KafkaConsumer {
 
     @KafkaListener(topics = "${producer.topics.stock-protobuf}",
                    groupId = "${consumer.group-id.stock:stock-consumer-group}",
-                   containerFactory = "cccccccccc")
+                   containerFactory = "protobufStockKafkaListenerContainerFactory")
     public void consumeStockPriceProtoBuffMessage(@Payload StockPriceProto.StockPrice stockPrice,
                                                   @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                                                   @Header(KafkaHeaders.OFFSET) Long offset,
@@ -80,12 +80,12 @@ public class KafkaConsumer {
             // Increment success counter
             protobufMessagesConsumed.increment();
 
-            logger.info("Processed stock price: symbol={}, price=${}, volume={}, exchange={}, latency={}ms",
+/*            logger.info("Processed stock price: symbol={}, price=${}, volume={}, exchange={}, latency={}ms",
                     stockPrice.getSymbol(),
                     stockPrice.getPrice(),
                     stockPrice.getVolume(),
                     stockPrice.getExchange(),
-                    endToEndLatency);
+                    endToEndLatency);*/
             ack.acknowledge();
 
         } catch (Exception e) {
@@ -136,12 +136,12 @@ public class KafkaConsumer {
             // Increment success counter
             protobufMessagesConsumed.increment();
 
-            logger.info("Processed user event: eventId={}, userId={}, eventType={}, page={}, latency={}ms",
+/*            logger.info("Processed user event: eventId={}, userId={}, eventType={}, page={}, latency={}ms",
                     userEvent.getEventId(),
                     userEvent.getUserId(),
                     userEvent.getEventType(),
                     userEvent.getPage(),
-                    endToEndLatency);
+                    endToEndLatency);*/
             ack.acknowledge();
 
         } catch (Exception e) {
@@ -188,9 +188,9 @@ public class KafkaConsumer {
             // Update metrics
             avroMessagesConsumed.increment();
 
-            logger.info("Processed sensor data avro - Sensor: {}, Type: {}, Value: {}, Location: {}, Lag: {}ms",
+/*            logger.info("Processed sensor data avro - Sensor: {}, Type: {}, Value: {}, Location: {}, Lag: {}ms",
                     sensorData.get("sensorId"), sensorData.get("sensorType"),
-                    sensorData.get("value"), sensorData.get("location"), lag);
+                    sensorData.get("value"), sensorData.get("location"), lag);*/
             ack.acknowledge();
 
         } catch (Exception e) {
@@ -237,9 +237,9 @@ public class KafkaConsumer {
             avroMessagesConsumed.increment();
 
             GenericRecord location = (GenericRecord) weatherData.get("location");
-            logger.info("Processed weather data avro - Station: {}, Temp: {}°C, Humidity: {}%, Lag: {}ms",
+/*            logger.info("Processed weather data avro - Station: {}, Temp: {}°C, Humidity: {}%, Lag: {}ms",
                     weatherData.get("stationId"), weatherData.get("temperature"),
-                    weatherData.get("humidity"), lag);
+                    weatherData.get("humidity"), lag);*/
             ack.acknowledge();
 
 
