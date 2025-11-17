@@ -16,7 +16,10 @@ jobs:
   # ============================================================
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       build-time: ${{ steps.version.outputs.build-time }}
