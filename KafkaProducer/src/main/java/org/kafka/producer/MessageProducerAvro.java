@@ -186,7 +186,7 @@ public class MessageProducerAvro {
         return props;
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 5000)
     public void produceSensorDataAvro(){
         this.executorService.submit(()->{
             Timer.Sample sample = Timer.start(meterRegistry);
