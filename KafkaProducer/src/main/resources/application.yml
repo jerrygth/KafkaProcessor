@@ -33,4 +33,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus
+        include: health,liveness,readiness,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      show-components: always

@@ -243,18 +243,26 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             MODULE_NAME=${{ matrix.module.name }}
+      - name: Normalize repo & module names to lowercase
+        id: set_lowercase
+        # This shell command converts the matrix variable to lowercase and sets it as an output
+        run: |
+          LOWERCASE_MODULENAME=$(echo "${{ matrix.module.name }}" | tr '[:upper:]' '[:lower:]')
+          LOWERCASE_REPONAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          echo "module_name_lc=$LOWERCASE_MODULENAME" >> $GITHUB_OUTPUT
+          echo "repo_name_lc=$LOWERCASE_REPONAME" >> $GITHUB_OUTPUT
 
       - name: Image scan with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ lower(github.event.repository.name) }}/${{ lower(matrix.module.name) }}:latest
+          image-ref: ${{ env.REGISTRY }}/${{ steps.set_lowercase.outputs.repo_name_lc }}/${{ steps.set_lowercase.outputs.module_name_lc }}:latest
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.module.name }}.sarif'
+          output: 'trivy-results-${{ steps.set_lowercase.outputs.module_name_lc }}.sarif'
         continue-on-error: true
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ matrix.module.name }}.sarif'
+          sarif_file: 'trivy-results-${{ steps.set_lowercase.outputs.module_name_lc }}.sarif'
         continue-on-error: true
