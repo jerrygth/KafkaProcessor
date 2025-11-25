@@ -248,7 +248,7 @@ jobs:
         # This shell command converts the matrix variable to lowercase and sets it as an output
         run: |
           LOWERCASE_MODULENAME=$(echo "${{ matrix.module.name }}" | tr '[:upper:]' '[:lower:]')
-          LOWERCASE_REPONAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          LOWERCASE_REPONAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "module_name_lc=$LOWERCASE_MODULENAME" >> $GITHUB_OUTPUT
           echo "repo_name_lc=$LOWERCASE_REPONAME" >> $GITHUB_OUTPUT
 

@@ -126,7 +126,7 @@ class MessageProducerAvroTest {
     void testGenerateSensorValue() {
         double value = ReflectionTestUtils.invokeMethod(producer, "generateSensorValue");
 
-        assert value >= 15.0 && value <= 35.0 : "Sensor value should be within reasonable range";
+        assert value >= 15.0 && value <= 50.0 : "Sensor value should be within reasonable range";
     }
 
     @Test

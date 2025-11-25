@@ -130,7 +130,7 @@ public class MessageProducerProtoBuff {
     }
 
     // High-frequency stock price updates using Protobuf
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 5000)
     public void produceStockPriceMessage(){
         executorService.submit(() -> {
             Timer.Sample timer = Timer.start(meterRegistry);
