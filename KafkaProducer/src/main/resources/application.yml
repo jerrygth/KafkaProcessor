@@ -1,8 +1,8 @@
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka1:9092,kafka2:9094,kafka3:9096}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka1:9092,kafka2:9094,kafka3:9096}
     schema-registry:
-      url: ${SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+      url: ${SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL:http://schema-registry:8081}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all

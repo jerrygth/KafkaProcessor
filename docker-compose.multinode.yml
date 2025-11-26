@@ -163,7 +163,7 @@ services:
       SPRING_KAFKA_PRODUCER_BATCH_SIZE: 16384
       SPRING_KAFKA_PRODUCER_LINGER_MS: 5
       SPRING_KAFKA_PRODUCER_COMPRESSION_TYPE: snappy
-      SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
     networks:
       - kafka-network
     deploy:
@@ -189,7 +189,7 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9094,kafka3:9096
       SPRING_KAFKA_CONSUMER_GROUP_ID: demo-group
       SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
-      SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
     networks:
       - kafka-network
     deploy:
@@ -213,7 +213,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9094,kafka3:9096
-      SPRING_KAFKA_CONSUMER_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL: http://schema-registry:8081
     networks:
       - kafka-network
     volumes:
