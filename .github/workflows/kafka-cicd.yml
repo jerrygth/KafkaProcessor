@@ -169,9 +169,6 @@ jobs:
           project: 'kafka-processor'
           path: '.'
           format: 'HTML'
-          args: |
-            --enableRetired
-            --suppression dependency-check-suppressions.xml
         continue-on-error: true
 
       - name: Upload Dependency Check Report
