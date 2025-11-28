@@ -163,12 +163,14 @@ jobs:
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@1.1.0
         env:
-          JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64
-          PATH: /usr/lib/jvm/temurin-17-jdk-amd64/bin:${{ env.PATH }}
+          JAVA_HOME: /opt/jdk
         with:
           project: 'kafka-processor'
           path: '.'
           format: 'HTML'
+          out: 'reports'
+          args: >
+            --enableRetired
         continue-on-error: true
 
       - name: Upload Dependency Check Report
@@ -176,7 +178,7 @@ jobs:
         if: always()
         with:
           name: dependency-check-report
-          path: reports/dependency-check-report.html
+          path: ${{github.workspace}}/reports
         continue-on-error: true
 
 # ============================================================
