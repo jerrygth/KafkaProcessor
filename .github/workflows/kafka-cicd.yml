@@ -3,6 +3,14 @@ name: Kafka Processor CI/CD Pipeline
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'KafkaConsumer/**'
+      - 'KafkaProducer/**'
+      - 'KafkaStreams/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'config/**'
+      - 'gradle/**'
   pull_request:
     branches: [ main ]
   workflow_dispatch:

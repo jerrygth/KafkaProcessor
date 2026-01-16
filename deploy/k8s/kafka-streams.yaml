@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-streams
+  namespace: kafka
+  labels:
+    app: kafka-streams
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-streams
+  template:
+    metadata:
+      labels:
+        app: kafka-streams
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8084"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      containers:
+      - name: kafka-streams
+        image: ghcr.io/jerrygth/kafkaprocessor/kafkastreams:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8084
+          name: http
+        env:
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-cluster-kafka-bootstrap:9092"
+        - name: SPRING_KAFKA_PROPERTIES_SCHEMA_REGISTRY_URL
+          value: "http://schema-registry-sr:8081"
+        - name: SPRING_KAFKA_STREAMS_APPLICATION_ID
+          value: "kafka-streams-analytics"
+        - name: SPRING_KAFKA_STREAMS_REPLICATION_FACTOR
+          value: "3"
+        - name: SPRING_KAFKA_STREAMS_STATE_DIR
+          value: "/data/kafka-streams"
+        - name: SERVER_PORT
+          value: "8084"
+        - name: JAVA_OPTS
+          value: "-Xms256m -Xmx512m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+        volumeMounts:
+        - name: streams-state
+          mountPath: /data/kafka-streams
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 500m
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 5
+      volumes:
+      - name: streams-state
+        persistentVolumeClaim:
+          claimName: kafka-streams-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-streams-pvc
+  namespace: kafka
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: oci-bv
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-streams
+  namespace: kafka
+spec:
+  ports:
+  - port: 8084
+    targetPort: 8084
+  selector:
+    app: kafka-streams
+---
