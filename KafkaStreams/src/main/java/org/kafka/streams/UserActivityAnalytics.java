@@ -68,7 +68,7 @@ public class UserActivityAnalytics {
                     }else if (useractivity.getEvents() == null) {
                         logger.warn("Events list is null for session=" + key);
                     }else {
-                        logger.warn("WARNING: useractivity events=" + useractivity.getEvents());
+                        logger.debug("WARNING: useractivity events=" + useractivity.getEvents());
                     }
                 })
                 .filter((key, useractivity) -> useractivity != null && useractivity.isComplete())

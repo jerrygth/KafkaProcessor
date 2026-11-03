@@ -1,5 +1,7 @@
 package org.kafka.streams.processor;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
@@ -78,6 +80,12 @@ public class VolatilityProcessor implements Processor<String, StockPriceProto.St
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonAutoDetect(
+            fieldVisibility = JsonAutoDetect.Visibility.ANY,
+            getterVisibility = JsonAutoDetect.Visibility.NONE,
+            isGetterVisibility = JsonAutoDetect.Visibility.NONE
+    )
     public static class VolatilityCalculator {
         private List<Double> prices = new ArrayList<>();
         private List<Long> timestamps = new ArrayList<>();
