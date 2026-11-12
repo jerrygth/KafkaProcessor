@@ -1,24 +1,19 @@
 package org.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde;
 import io.confluent.kafka.streams.serdes.protobuf.KafkaProtobufSerde;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
 import org.apache.kafka.streams.state.WindowStore;
 import org.kafka.producer.model.protobuf.StockPriceProto;
 import org.kafka.streams.model.MarketOverview;
-import org.kafka.streams.model.SensorStatistics;
 import org.kafka.streams.serde.JsonSerde;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +51,7 @@ public class RealTimeAggregations {
                 builder.stream(stockProtobufTopic, Consumed.with(Serdes.String(), stockSerde));
 
         stockStream
-                .groupBy((key, stock) -> "market-overview")
+                .groupBy((key, stock) -> "market-overview", Grouped.with(Serdes.String(), stockSerde))
                 .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
                 .aggregate(
                         () -> new MarketOverview(),
@@ -67,6 +62,7 @@ public class RealTimeAggregations {
                 )
                 .toStream()
                 .mapValues(this::createMarketSummary)
+                .selectKey((wk, v) -> wk.key())
                 .to(marketOverviewFeed);
 
         logger.info("Real-time aggregations topology configured");

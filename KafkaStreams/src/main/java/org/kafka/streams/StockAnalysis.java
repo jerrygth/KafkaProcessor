@@ -5,10 +5,7 @@ import io.confluent.kafka.streams.serdes.protobuf.KafkaProtobufSerde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -55,7 +52,8 @@ public class StockAnalysis {
         builder.addStateStore(volatilityStateStoreBuilder);
 
         //Stock price moving average calculation
-        stockPriceStream.groupBy((key,stock) -> stock.getSymbol()).windowedBy(TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(1))).
+        stockPriceStream.groupBy((key,stock) -> stock.getSymbol(), Grouped.with(Serdes.String(), stockProtobufSerde)).
+                windowedBy(TimeWindows.of(Duration.ofMinutes(5)).advanceBy(Duration.ofMinutes(1))).
                 aggregate(()-> new StockMovingAverage(),(key,stock,aggregate) -> aggregate.updateAverage(stock.getPrice(),stock.getTimestamp()),
                         Materialized.<String, StockMovingAverage, WindowStore<Bytes, byte[]>>as("stock-moving-averages")
                                 .withKeySerde(Serdes.String())
@@ -63,11 +61,12 @@ public class StockAnalysis {
                 ).
                 toStream().
                 filter((key,average) -> average.hasSignificantChange()).
-                mapValues(this::createMovingAverageAlert)
+                mapValues(this::createMovingAverageAlert).
+                selectKey((wk, v) -> wk.key())
                 .to(stockMovingAverageAlerts);
 
         stockPriceStream
-                .groupBy((key, stock) -> stock.getSymbol())
+                .groupBy((key, stock) -> stock.getSymbol(), Grouped.with(Serdes.String(), stockProtobufSerde))
                 .windowedBy(TimeWindows.of(Duration.ofMinutes(1)))
                 .aggregate(
                         () -> new VolumeAnalyzer(),
@@ -78,7 +77,8 @@ public class StockAnalysis {
                 )
                 .toStream()
                 .filter((key, analyzer) -> analyzer.hasVolumeSurge())
-                .mapValues(this::createVolumeSurgeAlert)
+                .mapValues(this::createVolumeSurgeAlert).
+                selectKey((wk, v) -> wk.key())
                 .to(volumeSurgeAlerts);
 
         stockPriceStream

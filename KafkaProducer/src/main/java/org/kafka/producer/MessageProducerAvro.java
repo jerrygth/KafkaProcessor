@@ -63,6 +63,8 @@ public class MessageProducerAvro {
     @Value("${producer.topics.weather-avro}")
     private String weatherAvroTopic;
 
+    private static final String[] LOCATIONS =
+            {"warehouse_1", "warehouse_2", "office_floor_1", "office_floor_2", "parking_lot"};
 
 
 
@@ -195,14 +197,13 @@ public class MessageProducerAvro {
                 MDC.put("format", "avro");
 
                 String[] sensorTypes = {"temperature", "humidity", "pressure", "light", "motion", "air_quality"};
-                String[] locations = {"warehouse_1", "warehouse_2", "office_floor_1", "office_floor_2", "parking_lot"};
 
                 GenericRecord sensorData = new GenericData.Record(sensorSchema);
                 String sensorId = "sensor_" + random.nextInt(500);
 
                 sensorData.put("sensorId", sensorId);
                 sensorData.put("sensorType", sensorTypes[random.nextInt(sensorTypes.length)]);
-                sensorData.put("location", locations[random.nextInt(locations.length)]);
+                sensorData.put("location", LOCATIONS[random.nextInt(LOCATIONS.length)]);
                 sensorData.put("value", generateSensorValue());
                 sensorData.put("unit", "°C");
                 sensorData.put("timestamp", System.currentTimeMillis());
@@ -238,7 +239,7 @@ public class MessageProducerAvro {
                 GenericRecord weatherData = new GenericData.Record(weatherSchema);
                 GenericRecord location = new GenericData.Record(weatherSchema.getField("location").schema());
 
-                String stationId = "station_" + random.nextInt(100);
+                String stationId = LOCATIONS[random.nextInt(LOCATIONS.length)];
 
                 // Location
                 location.put("latitude", 40.7128 + (random.nextGaussian() * 0.1));

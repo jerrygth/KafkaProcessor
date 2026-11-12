@@ -1,13 +1,15 @@
 package org.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde;
 import io.confluent.kafka.streams.serdes.protobuf.KafkaProtobufSerde;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.JoinWindows;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.StreamJoined;
 import org.kafka.producer.model.protobuf.StockPriceProto;
 import org.kafka.producer.model.protobuf.UserEventProto;
 import org.kafka.streams.model.StockUserInterestCorrelation;
@@ -17,8 +19,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @Component
@@ -35,6 +39,7 @@ public class CrossFormatJoins {
     @Value("${output.topics.stock-interest-correlations}")
     private String stockInterestCorrelations;
 
+    private static final Pattern SEARCH_QUERY = Pattern.compile("[?&]q=([A-Za-z0-9.\\-]+)");
 
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -54,31 +59,31 @@ public class CrossFormatJoins {
         // Join user search events with stock price movements
         KStream<String, UserEventProto.UserEvent> searchEvents = userStream
                 .filter((key, event) -> "SEARCH".equals(event.getEventType()))
-                .selectKey((key, event) -> extractStockSymbolFromSearch(event));
+                .selectKey((key, event) -> extractStockSymbolFromSearch(event))
+                .filter((symbol, event) -> symbol != null);
 
         stockStream
-            .selectKey((key, stock) -> stock.getSymbol())
-            .join(
-                searchEvents,
-                this::correlateStockPriceWithUserInterest,
-                JoinWindows.of(Duration.ofMinutes(2)),
-                StreamJoined.with(Serdes.String(), stockSerde, userEventSerde)
-            )
-            .mapValues(this::createInterestCorrelation)
-            .to(stockInterestCorrelations);
+                .join(
+                        searchEvents,
+                        this::correlateStockPriceWithUserInterest,
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(2)),
+                        StreamJoined.with(Serdes.String(), stockSerde, userEventSerde)
+                                .withName("stock-search-join")
+                                .withStoreName("stock-search-join-store"))
+                .mapValues(this::createInterestCorrelation)
+                .to(stockInterestCorrelations);
 
         logger.info("Cross-format joins topology configured");
     }
 
     private String extractStockSymbolFromSearch(UserEventProto.UserEvent event) {
         // Extract stock symbol from search query - simplified implementation
-        String[] symbols = {"AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META", "NVDA", "NFLX"};
-        if(event == null || event.getPage() == null) {
-            logger.warn("Null event or page received");
+        if (event == null) {
+            logger.warn("Null event received");
             return null;
         }
-        String query = event.getPage().toUpperCase(); // Simplified - assuming page contains symbol
-        return Arrays.stream(symbols).filter(s->query.contains(s)).findFirst().orElse(null);
+        Matcher m = SEARCH_QUERY.matcher(event.getPage());
+        return m.find() ? m.group(1).toUpperCase(Locale.ROOT) : null;
     }
 
     private StockUserInterestCorrelation correlateStockPriceWithUserInterest(

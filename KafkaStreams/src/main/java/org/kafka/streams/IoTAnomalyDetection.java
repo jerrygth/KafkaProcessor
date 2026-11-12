@@ -1,7 +1,6 @@
 package org.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -12,7 +11,6 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
 import org.apache.kafka.streams.state.WindowStore;
-import org.kafka.streams.model.ConversionFunnel;
 import org.kafka.streams.model.SensorHealth;
 import org.kafka.streams.model.SensorStatistics;
 import org.kafka.streams.model.WeatherSensorCorrelation;
@@ -61,7 +59,7 @@ public class IoTAnomalyDetection {
 
         //Statistical anomaly detection using Z-score
         sensorStream
-                .groupBy((key, sensor) -> buildSensorGroupKey(sensor))
+                .groupBy((key, sensor) -> buildSensorGroupKey(sensor),Grouped.with(Serdes.String(), avroSerde))
                 .windowedBy(TimeWindows.of(Duration.ofMinutes(10)).advanceBy(Duration.ofMinutes(1)))
                 .aggregate(
                         () -> new SensorStatistics(),
@@ -84,16 +82,21 @@ public class IoTAnomalyDetection {
         KStream<String, GenericRecord> weatherStream =
                 builder.stream(weatherAvroTopic, Consumed.with(Serdes.String(), avroSerde));
 
-        sensorStream
-                .filter((key, sensor) -> "temperature".equals(sensor.get("sensorType").toString()))
+        // Sensors are keyed by sensorId; re-key temperature readings by site.
+        KStream<String, GenericRecord> temperatureBySite = sensorStream
+                .filter((key, sensor) -> "temperature".equals(String.valueOf(sensor.get("sensorType"))))
+                .selectKey((key, sensor) -> String.valueOf(sensor.get("location")));
+
+        temperatureBySite
                 .join(
                         weatherStream,
                         this::correlateSensorWithWeather,
-                        JoinWindows.of(Duration.ofMinutes(2)),
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(2)),
                         StreamJoined.with(Serdes.String(), avroSerde, avroSerde)
-                )
-               .filter((key, correlation) -> correlation.hasSignificantDeviation())
-               .mapValues(this::createCorrelationAlert)
+                                .withName("sensor-weather-join")
+                                .withStoreName("sensor-weather-join-store"))
+                .filter((key, correlation) -> correlation.hasSignificantDeviation())
+                .mapValues(this::createCorrelationAlert)
                 .to(sensorWeatherCorrelations);
 
         logger.info("IoT anomaly detection topology configured");

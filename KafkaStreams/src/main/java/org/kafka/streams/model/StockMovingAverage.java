@@ -1,8 +1,15 @@
 package org.kafka.streams.model;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonAutoDetect(
+        fieldVisibility = JsonAutoDetect.Visibility.ANY,
+        getterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+        isGetterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+        setterVisibility = JsonAutoDetect.Visibility.NONE
+)
 public class StockMovingAverage {
     private String symbol;
     private double currentAverage;
@@ -17,6 +24,9 @@ public class StockMovingAverage {
     }
 
     public boolean hasSignificantChange() {
+        if(previousAverage == 0) {
+            return false; // Avoid division by zero
+        }
         return Math.abs(currentAverage - previousAverage) / previousAverage > 0.05; // 5% change
     }
 

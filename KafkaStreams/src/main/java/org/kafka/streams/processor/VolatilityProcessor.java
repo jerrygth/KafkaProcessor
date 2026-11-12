@@ -83,8 +83,9 @@ public class VolatilityProcessor implements Processor<String, StockPriceProto.St
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonAutoDetect(
             fieldVisibility = JsonAutoDetect.Visibility.ANY,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE
+            getterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+            isGetterVisibility = JsonAutoDetect.Visibility.PUBLIC_ONLY,
+            setterVisibility = JsonAutoDetect.Visibility.NONE
     )
     public static class VolatilityCalculator {
         private List<Double> prices = new ArrayList<>();

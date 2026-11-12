@@ -6,12 +6,12 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.*;
+import org.apache.kafka.streams.state.SessionStore;
+import org.apache.kafka.streams.state.WindowStore;
 import org.kafka.producer.model.protobuf.UserEventProto;
 import org.kafka.streams.model.ConversionFunnel;
 import org.kafka.streams.model.UserActivity;
 import org.kafka.streams.model.UserBehaviorProfile;
-import org.kafka.streams.model.VolumeAnalyzer;
 import org.kafka.streams.serde.JsonSerde;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class UserActivityAnalytics {
 
         // User session-based mapping
         userStream
-                .groupBy((key, event) -> event.getSessionId())
+                .groupBy((key, event) -> event.getSessionId(), Grouped.with(Serdes.String(), userEventSerde))
                 .windowedBy(SessionWindows.with(Duration.ofMinutes(30)))
                 .aggregate(
                         () -> new UserActivity(),
@@ -73,11 +73,12 @@ public class UserActivityAnalytics {
                 })
                 .filter((key, useractivity) -> useractivity != null && useractivity.isComplete())
                 .mapValues(this::analyzeUserActivity)
+                .selectKey((wk, v) -> wk.key())
                 .to(userJourneyAnalytics);
 
         // Real-time user behaviour
-        userStream
-                .groupBy((key, event) -> event.getUserId())
+         userStream
+                .groupBy((key, event) -> event.getUserId(), Grouped.with(Serdes.String(), userEventSerde))
                 .windowedBy(TimeWindows.of(Duration.ofHours(1)))
                 .aggregate(
                         () -> new UserBehaviorProfile(),
@@ -88,12 +89,13 @@ public class UserActivityAnalytics {
                 )
                 .toStream()
                 .mapValues(this::segmentUser)
+                .selectKey((wk, v) -> wk.key())
                 .to(userSegmentation);
 
         //Conversion funnel analysis
         userStream
                 .filter((key, event) -> isConversionEvent(event.getEventType()))
-                .groupBy((key, event) -> event.getUserId())
+                .groupBy((key, event) -> event.getUserId(), Grouped.with(Serdes.String(), userEventSerde))
                 .windowedBy(TimeWindows.of(Duration.ofDays(1)))
                 .aggregate(
                         () -> new ConversionFunnel(),
@@ -105,6 +107,7 @@ public class UserActivityAnalytics {
                 .toStream()
                 .filter((key, funnel) -> funnel.isConverted())
                 .mapValues(this::createConversionEvent)
+                .selectKey((wk, v) -> wk.key())
                 .to(conversions);
 
         logger.info("User journey analytics topology configured");

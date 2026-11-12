@@ -63,6 +63,9 @@ public class MessageProducerProtoBuff {
     @Value("${producer.topics.user-events-protobuf}")
     private String userEventsProtobufTopic;
 
+    private static final String[] STOCK_SYMBOLS =
+            {"TCS", "INFY", "TSLA", "TATAMOTORS", "META", "NVDA", "NFLX"};
+
     public MessageProducerProtoBuff(MeterRegistry meterRegistry){
         this.meterRegistry = meterRegistry;
         this.messageCounter =  Counter.builder("kafka.producer.protobuf.messages")
@@ -77,7 +80,7 @@ public class MessageProducerProtoBuff {
                 60L, java.util.concurrent.TimeUnit.SECONDS,
                 new java.util.concurrent.LinkedBlockingQueue<>(1000),
                 new ThreadFactory() {
-                    private AtomicLong threadNumber = new AtomicLong(1);
+                    private final AtomicLong threadNumber = new AtomicLong(1);
                     @Override
                     public Thread newThread(Runnable r) {
                         Thread t = new Thread(r, "kafka-protobuf-producer-" + threadNumber.getAndIncrement());
@@ -138,8 +141,7 @@ public class MessageProducerProtoBuff {
                MDC.put("messageType", "stock-protobuf");
                MDC.put("format", "protobuf");
 
-               String[] symbols = {"TCS", "INFY", "TSLA", "TATAMOTROS", "META", "NVDA", "NFLX"};
-               String symbol = symbols[random.nextInt(symbols.length)];
+               String symbol = STOCK_SYMBOLS[random.nextInt(STOCK_SYMBOLS.length)];
                StockPriceProto.StockPrice stockPrice = StockPriceProto.StockPrice.newBuilder()
                        .setSymbol(symbol)
                        .setPrice(generateStockPrice(symbol))
@@ -172,13 +174,18 @@ public class MessageProducerProtoBuff {
                 MDC.put("format", "protobuf");
 
                 String[] eventTypes = {"PAGE_VIEW", "CLICK", "PURCHASE", "LOGIN", "LOGOUT", "SEARCH", "ADD_TO_CART"};
+                String eventType = eventTypes[random.nextInt(eventTypes.length)];
+                String page = "SEARCH".equals(eventType)
+                        ? "/search?q=" + STOCK_SYMBOLS[random.nextInt(STOCK_SYMBOLS.length)]
+                        : "/page/" + random.nextInt(1000);
                 String userId = "user_" + (random.nextInt(50000) + 1);
                 UserEventProto.UserEvent userEvent = UserEventProto.UserEvent.newBuilder()
+                        .setEventId(java.util.UUID.randomUUID().toString())
                         .setUserId(userId)
-                        .setEventType(eventTypes[random.nextInt(eventTypes.length)])
+                        .setEventType(eventType)
                         .setTimestamp(System.currentTimeMillis())
                         .setSessionId("session_" + random.nextInt(10000))
-                        .setPage("/page/" + random.nextInt(1000))
+                        .setPage(page)
                         .setUserAgent("Mozilla/5.0 (compatible; KafkaBot/1.0)")
                         .setIpAddress("192.168.1." + random.nextInt(255))
                         .setCountry("IND")
